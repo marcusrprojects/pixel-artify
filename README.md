@@ -1,5 +1,7 @@
 # Image Pixelator
 
+[![Python Version](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
+
 A simple command-line tool written in Python to convert images into pixel art.
 
 This script takes an input image, downscales it to create larger "pixels", optionally reduces the color palette, and then scales it back up to the original size using nearest-neighbor interpolation to maintain the blocky aesthetic.
@@ -10,6 +12,11 @@ This script takes an input image, downscales it to create larger "pixels", optio
 * Optional color palette reduction (quantization).
 * Handles various image formats supported by Pillow (PNG, JPG, etc.).
 * Command-line interface for easy scripting.
+
+## Requirements
+
+* Python 3.6 or higher
+* Pillow library (`pip install Pillow`)
 
 ## Setup
 
