@@ -10,7 +10,7 @@ This script takes an input image, downscales it to create larger "pixels", optio
 
 **Pixelated `-p 15` `-c 75`** | **Pixelated & Distressed `-p 25` `-c 50` `-d 10`**
 :-------------------------:|:-------------------------:
-![Pixel Art Image](examples/pixel_bluejay_19.png) | ![Pixel Art Image - Distressed](examples/pixel_bluejay_18.png)
+![Pixel Art Image](examples/pixel_bluejay.png) | ![Pixel Art Image - Distressed](examples/pixel_bluejay_distressed.png)
 
 *(Example outputs based on processing an image with this tool. See the `examples` folder.)*
 
