@@ -26,7 +26,7 @@ This script takes an input image, downscales it to create larger "pixels", optio
 
   * The effect is blocky, aligning with the chosen `pixel_size`.
 
-  * The probability of a block being removed decreases further from the edge.
+  * The probability decay rate (how quickly the effect fades inwards) is controllable.
 
 * **Default File Handling:**
 
@@ -172,6 +172,16 @@ python pixel_artify.py <input_image> [options]
   * Example: `-d 25`
 
   * Default: `0` (no distress)
+
+* `--decay-rate RATE`:
+
+  * Decay rate for distress effect probability (0.0 to 1.0).
+
+  * Lower values decay faster (more edge-focused).
+
+  * Higher values penetrate deeper.
+  
+  * Default: `0.65`
 
 * `-h, --help`:
 
