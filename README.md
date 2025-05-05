@@ -8,9 +8,9 @@ This script takes an input image, downscales it to create larger "pixels", optio
 
 ## Examples
 
-**Pixelated `-p 25` `-c 30`** | **Pixelated & Distressed `-p 25` `-c 30` `-d 40`**
+**Pixelated `-p 15` `-c 75`** | **Pixelated & Distressed `-p 25` `-c 50` `-d 10`**
 :-------------------------:|:-------------------------:
-![Image: examples/pixel_movie_poster.png](examples/pixel_movie_poster.png) | ![Image: examples/pixel_movie_poster_distressed.png](examples/pixel_movie_poster_distressed.png)
+![Pixel Art Image](examples/pixel_bluejay_19.png) | ![Pixel Art Image - Distressed](examples/pixel_bluejay_18.png)
 
 *(Example outputs based on processing an image with this tool. See the `examples` folder.)*
 
