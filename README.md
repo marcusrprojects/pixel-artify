@@ -4,7 +4,7 @@
 
 A command-line tool written in Python to convert images into pixel art, with options for customization and effects.
 
-This script takes an input image, downscales it to create larger "pixels", optionally reduces the color palette, and then scales it back up using nearest-neighbor interpolation. It can preserve transparency and add an optional "distressed edge" effect to opaque images.
+This script takes an input image, downscales it to create larger "pixels", optionally reduces the color palette, and then scales it back up using nearest-neighbor interpolation. It can preserve transparency and add an optional "distressed edge" effect.
 
 ## Examples
 
@@ -166,8 +166,6 @@ python pixel_artify.py <input_image> [options]
 * `-d PERCENT, --distress-edges PERCENT`:
 
   * Adds a decaying "chipped edge" effect. `PERCENT` is the base chance (1-100) for edge blocks to be removed.
-
-  * **Only applies if the original input image does not have transparency.**
 
   * Requires saving as PNG (which is the default output format).
 

@@ -77,9 +77,8 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
         output_path (str): Full path to save the pixelated output image.
         pixel_size (int): The size (in pixels) of the 'blocks' in the final image. Must be > 0.
         color_count (int, optional): Max number of colors. Defaults to None.
-        distress_intensity (int): Base percentage chance (1-100) to chip edge blocks
-                                  if the original image was opaque. Probability decays inwards.
-                                  Defaults to 0 (no distress).
+        distress_intensity (int): Base percentage chance (1-100) to chip edge blocks.
+                                  Probability decays inwards. Defaults to 0 (no distress).
     """
     # --- Input validation and setup ---
     if pixel_size <= 0:
@@ -87,11 +86,12 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
         return
 
     output_ext = os.path.splitext(output_path)[1].lower()
+    # Distress always adds/modifies alpha, so PNG is strongly recommended
     if distress_intensity > 0 and output_ext != '.png':
-        print("Warning: Distress effect adds transparency. Output format should ideally be PNG.")
+        print("Warning: Distress effect modifies transparency. Output format should ideally be PNG.")
 
     try:
-        print(f"Processing '{os.path.basename(input_path)}'...") # Print only basename for brevity
+        print(f"Processing '{os.path.basename(input_path)}'...")
         img = Image.open(input_path)
         original_size = img.size
         original_mode = img.mode
@@ -99,17 +99,21 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
         original_has_alpha = original_mode in ('RGBA', 'LA') or \
                              (original_mode == 'P' and 'transparency' in img.info)
 
+        # Check output format compatibility if original had alpha and no distress is applied
         if original_has_alpha and distress_intensity == 0 and output_ext != '.png':
              print(f"Warning: Input image has transparency, but output format '{output_ext}' may not support it well. PNG is recommended.")
 
         # --- Start Processing ---
-        if original_has_alpha:
-            img = img.convert('RGBA')
-            current_mode = 'RGBA'
+        # Convert to RGBA if original had alpha OR if distress will be applied later
+        # Otherwise, convert to RGB
+        if original_has_alpha or distress_intensity > 0:
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+            current_mode = 'RGBA' # Track that the final output should support alpha
         else:
             if img.mode != 'RGB':
                 img = img.convert('RGB')
-            current_mode = 'RGB'
+            current_mode = 'RGB' # Track that the final output can be RGB
 
 
         # 1. Downscale
@@ -128,26 +132,29 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
                 quantized_rgb = rgb_img.quantize(colors=color_count, method=Image.Quantize.MEDIANCUT).convert('RGB')
                 processed_small_img = quantized_rgb.copy()
                 processed_small_img.putalpha(alpha)
-            else:
+            else: # RGB or other
                 if processed_small_img.mode != 'RGB':
                     processed_small_img = processed_small_img.convert('RGB')
                 quantized_rgb = processed_small_img.quantize(colors=color_count, method=Image.Quantize.MEDIANCUT).convert('RGB')
                 processed_small_img = quantized_rgb
+                # If distress is planned, convert back to RGBA after quantization
+                if distress_intensity > 0:
+                    processed_small_img = processed_small_img.convert('RGBA')
 
 
         # 3. Optional: Apply Distress Edges *to the small image*
         final_small_img = processed_small_img
-        if distress_intensity > 0 and not original_has_alpha:
+        # Apply distress if intensity is > 0, regardless of original alpha
+        if distress_intensity > 0:
             final_small_img = apply_distress_to_small_image(processed_small_img, distress_intensity)
             current_mode = 'RGBA'
-        elif distress_intensity > 0 and original_has_alpha:
-            print("Skipping distress effect: Original image already had transparency.")
 
 
         # 4. Upscale the *final* small image using NEAREST neighbor
         pixelated_img = final_small_img.resize(original_size, Image.Resampling.NEAREST)
 
         # 5. Final Mode Check
+        # Ensure the final image mode matches the tracked current_mode
         if current_mode == 'RGBA' and pixelated_img.mode != 'RGBA':
              pixelated_img = pixelated_img.convert('RGBA')
         elif current_mode == 'RGB' and pixelated_img.mode != 'RGB':
@@ -192,7 +199,7 @@ def main():
     parser.add_argument("-c", "--colors", type=int, default=None,
                         help="Maximum number of colors in the output image (optional).\nQuantization might simplify transparency.\ne.g., 16 or 32.")
     parser.add_argument("-d", "--distress-edges", type=int, default=0, metavar='PERCENT',
-                        help="Base percentage chance (1-100) to 'chip' edge blocks before upscaling.\nProbability decays inwards.\nOnly applies if original input is opaque.\nRequires PNG output. Example: 20\nDefault: 0 (no distress)")
+                        help="Base percentage chance (1-100) to 'chip' edge blocks before upscaling.\nProbability decays inwards.\nApplies to both opaque and transparent images.\nRequires PNG output. Example: 20\nDefault: 0 (no distress)")
 
     args = parser.parse_args()
 
@@ -210,26 +217,19 @@ def main():
 
     # --- Determine Full Output Path ---
     if args.output:
-        # User specified an explicit output path - use it directly
         full_output_path = args.output
-        print(f"Using specified output path: {full_output_path}")
     else:
-        # Generate default output path with auto-suffixing
         input_basename = os.path.basename(full_input_path)
         input_name_part, _ = os.path.splitext(input_basename)
-        base_output_filename = f"pixel_{input_name_part}.png" # Base default name
+        base_output_filename = f"pixel_{input_name_part}.png"
         potential_output_path = os.path.join(args.output_dir, base_output_filename)
-
         counter = 1
-        # Check if the path exists and generate new names if it does
         while os.path.exists(potential_output_path):
             output_filename_suffix = f"pixel_{input_name_part}_{counter}.png"
             potential_output_path = os.path.join(args.output_dir, output_filename_suffix)
             counter += 1
-
-        # Use the first non-existent path found
         full_output_path = potential_output_path
-        if counter > 1: # Only print if suffix was added
+        if counter > 1:
              print(f"Default output path existed, using auto-suffixed name: {full_output_path}")
 
 
