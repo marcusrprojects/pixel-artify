@@ -29,7 +29,7 @@ def apply_distress_to_small_image(small_img, intensity_percent, decay_rate=0.65)
 
     # Ensure the small image is RGBA to modify alpha channel
     if small_img.mode != 'RGBA':
-        print("Converting small image to RGBA for distress effect.")
+        # print("Converting small image to RGBA for distress effect.") # Less verbose
         small_img = small_img.convert('RGBA')
     else:
         # Make a copy to avoid modifying the original if it was already RGBA
@@ -40,7 +40,7 @@ def apply_distress_to_small_image(small_img, intensity_percent, decay_rate=0.65)
         print("Warning: Decay rate must be between 0 and 1. Using default 0.65.")
         decay_rate = 0.65
 
-    print(f"Applying decaying blocky distress effect (intensity {intensity_percent}%, decay {decay_rate}) to small image...")
+    # print(f"Applying decaying blocky distress effect (intensity {intensity_percent}%, decay {decay_rate}) to small image...") # Less verbose
     pixels = small_img.load() # Load pixel data for modification
     grid_width, grid_height = small_img.size # Grid dimensions are the small image dimensions
     initial_probability = intensity_percent / 100.0
@@ -64,7 +64,7 @@ def apply_distress_to_small_image(small_img, intensity_percent, decay_rate=0.65)
                 # Set Alpha to 0 (fully transparent)
                 pixels[bx, by] = (current_pixel[0], current_pixel[1], current_pixel[2], 0)
 
-    print("Decaying distress effect applied to small image.")
+    # print("Decaying distress effect applied to small image.") # Less verbose
     return small_img # Return the modified small image
 
 
@@ -82,17 +82,16 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
                                   Defaults to 0 (no distress).
     """
     # --- Input validation and setup ---
-    # Input path existence is checked in main now before calling this
     if pixel_size <= 0:
         print("Error: Pixel size must be greater than 0.")
-        return # Or raise an error
+        return
 
     output_ext = os.path.splitext(output_path)[1].lower()
     if distress_intensity > 0 and output_ext != '.png':
         print("Warning: Distress effect adds transparency. Output format should ideally be PNG.")
 
     try:
-        print(f"Processing '{input_path}'...")
+        print(f"Processing '{os.path.basename(input_path)}'...") # Print only basename for brevity
         img = Image.open(input_path)
         original_size = img.size
         original_mode = img.mode
@@ -100,22 +99,16 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
         original_has_alpha = original_mode in ('RGBA', 'LA') or \
                              (original_mode == 'P' and 'transparency' in img.info)
 
-        # Output path directory is created in main now
-        # Check output format compatibility with original alpha (if no distress)
         if original_has_alpha and distress_intensity == 0 and output_ext != '.png':
              print(f"Warning: Input image has transparency, but output format '{output_ext}' may not support it well. PNG is recommended.")
 
         # --- Start Processing ---
         if original_has_alpha:
             img = img.convert('RGBA')
-            # print("Input has transparency, converting to RGBA.") # Less verbose
             current_mode = 'RGBA'
         else:
             if img.mode != 'RGB':
                 img = img.convert('RGB')
-                # print(f"Converting input mode '{original_mode}' to RGB.") # Less verbose
-            # else:
-                # print("Input does not have transparency, using RGB.") # Less verbose
             current_mode = 'RGB'
 
 
@@ -123,13 +116,11 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
         small_width = max(1, original_size[0] // pixel_size)
         small_height = max(1, original_size[1] // pixel_size)
         small_img_base = img.resize((small_width, small_height), Image.Resampling.LANCZOS)
-        # print(f"Downscaled to {small_img_base.size} using LANCZOS.") # Less verbose
 
 
         # 2. Optional: Quantize Colors
         processed_small_img = small_img_base
         if color_count is not None and color_count > 0:
-            # print(f"Quantizing colors to {color_count}...") # Less verbose
             small_img_mode_before_quant = processed_small_img.mode
             if small_img_mode_before_quant == 'RGBA':
                 alpha = processed_small_img.getchannel('A')
@@ -137,15 +128,11 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
                 quantized_rgb = rgb_img.quantize(colors=color_count, method=Image.Quantize.MEDIANCUT).convert('RGB')
                 processed_small_img = quantized_rgb.copy()
                 processed_small_img.putalpha(alpha)
-                # print("Quantized RGB channels and re-applied alpha channel.") # Less verbose
             else:
                 if processed_small_img.mode != 'RGB':
                     processed_small_img = processed_small_img.convert('RGB')
                 quantized_rgb = processed_small_img.quantize(colors=color_count, method=Image.Quantize.MEDIANCUT).convert('RGB')
                 processed_small_img = quantized_rgb
-                # print("Quantized image (started as non-RGBA or already RGB).") # Less verbose
-        # else:
-            # print("Skipping color quantization.") # Less verbose
 
 
         # 3. Optional: Apply Distress Edges *to the small image*
@@ -158,34 +145,29 @@ def pixelate_image(input_path, output_path, pixel_size, color_count=None, distre
 
 
         # 4. Upscale the *final* small image using NEAREST neighbor
-        # print(f"Upscaling to {original_size} using NEAREST...") # Less verbose
         pixelated_img = final_small_img.resize(original_size, Image.Resampling.NEAREST)
 
         # 5. Final Mode Check
         if current_mode == 'RGBA' and pixelated_img.mode != 'RGBA':
-             # print("Ensuring final image mode is RGBA.") # Less verbose
              pixelated_img = pixelated_img.convert('RGBA')
         elif current_mode == 'RGB' and pixelated_img.mode != 'RGB':
-             # print("Ensuring final image mode is RGB.") # Less verbose
              pixelated_img = pixelated_img.convert('RGB')
 
 
         # 6. Save the result
-        # Ensure output directory exists (handled in main now)
         pixelated_img.save(output_path)
         print(f"-> Saved pixelated image to '{output_path}' (Mode: {pixelated_img.mode})")
 
     except FileNotFoundError:
-        # This specific error should ideally be caught in main now
         print(f"Error: Input file not found at {input_path}")
     except Exception as e:
-        print(f"An error occurred while processing {input_path}: {e}")
+        print(f"An error occurred while processing {os.path.basename(input_path)}: {e}")
         import traceback
         traceback.print_exc()
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Turn an image into pixel art. Handles default folders and filenames.",
+        description="Turn an image into pixel art. Handles default folders and auto-suffixes filenames to avoid overwrites.",
         formatter_class=argparse.RawTextHelpFormatter
         )
 
@@ -195,7 +177,8 @@ def main():
                              "Can be a full path or just a filename relative to --input-dir.")
     parser.add_argument("-o", "--output",
                         help="Full path for the output image file.\n"
-                             "If omitted, automatically generates '<output_dir>/pixel_<input_name>.png'.")
+                             "If omitted, automatically generates '<output_dir>/pixel_<input_name>(_N).png',\n"
+                             "adding '_N' if needed to avoid overwriting existing files.")
     parser.add_argument("--input-dir", default=DEFAULT_INPUT_DIR,
                         help=f"Directory to look for input images if 'input_image' is just a filename.\n"
                              f"Default: '{DEFAULT_INPUT_DIR}'")
@@ -215,40 +198,51 @@ def main():
 
     # --- Determine Full Input Path ---
     input_arg = args.input_image
-    # Check if input_arg looks like just a filename (no directory part)
-    if os.path.dirname(input_arg): # Checks if there's a directory component
-        full_input_path = input_arg # Assume it's a full or relative path
+    if os.path.dirname(input_arg):
+        full_input_path = input_arg
     else:
-        # Assume it's a filename, join with input_dir
         full_input_path = os.path.join(args.input_dir, input_arg)
 
     # --- Validate Input Path ---
     if not os.path.isfile(full_input_path):
         print(f"Error: Input image not found at calculated path: {full_input_path}")
-        return # Exit if input doesn't exist
+        return
 
     # --- Determine Full Output Path ---
     if args.output:
-        # User specified an explicit output path
+        # User specified an explicit output path - use it directly
         full_output_path = args.output
+        print(f"Using specified output path: {full_output_path}")
     else:
-        # Generate default output path
+        # Generate default output path with auto-suffixing
         input_basename = os.path.basename(full_input_path)
         input_name_part, _ = os.path.splitext(input_basename)
-        output_filename = f"pixel_{input_name_part}.png" # Default to png
-        full_output_path = os.path.join(args.output_dir, output_filename)
+        base_output_filename = f"pixel_{input_name_part}.png" # Base default name
+        potential_output_path = os.path.join(args.output_dir, base_output_filename)
+
+        counter = 1
+        # Check if the path exists and generate new names if it does
+        while os.path.exists(potential_output_path):
+            output_filename_suffix = f"pixel_{input_name_part}_{counter}.png"
+            potential_output_path = os.path.join(args.output_dir, output_filename_suffix)
+            counter += 1
+
+        # Use the first non-existent path found
+        full_output_path = potential_output_path
+        if counter > 1: # Only print if suffix was added
+             print(f"Default output path existed, using auto-suffixed name: {full_output_path}")
+
 
     # --- Ensure Output Directory Exists ---
     output_dir_actual = os.path.dirname(full_output_path)
-    if output_dir_actual: # Check if there is a directory part (might be empty if output is in current dir)
+    if output_dir_actual:
         try:
             os.makedirs(output_dir_actual, exist_ok=True)
-            # print(f"Ensured output directory exists: {output_dir_actual}") # Optional: for debugging
         except OSError as e:
             print(f"Error: Could not create output directory '{output_dir_actual}': {e}")
-            return # Exit if output directory cannot be created
+            return
 
-    # --- Validate Distress Intensity ---
+    # --- Validate Distress Intensity---
     distress_value = 0
     if args.distress_edges:
         if 1 <= args.distress_edges <= 100:
@@ -256,7 +250,7 @@ def main():
         else:
             print("Warning: Distress intensity must be between 1 and 100. Ignoring.")
 
-    # --- Call the Image Processing Function ---
+    # --- Call the Image Processing Function---
     pixelate_image(
         input_path=full_input_path,
         output_path=full_output_path,
