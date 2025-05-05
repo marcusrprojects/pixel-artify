@@ -1,1 +1,7 @@
 .venv/
+.DS_Store
+
+# Project directories to ignore
+archives/
+input_images/
+output_images/
